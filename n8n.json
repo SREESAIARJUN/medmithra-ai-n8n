@@ -1,0 +1,951 @@
+{
+  "name": "My workflow 2",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1960,
+        -1240
+      ],
+      "id": "520cf7c5-0e4a-42a3-ada1-41bfea5a9b95",
+      "name": "WhatsApp Trigger",
+      "webhookId": "d3978cae-2aca-4553-8ac7-ab89068deabc",
+      "credentials": {
+        "whatsAppTriggerApi": {
+          "id": "dmRIeRNiKnddFtb6",
+          "name": "WhatsApp OAuth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "options": {
+          "systemMessage": "You are a Multimodal Clinical Insight Assistant. Your primary goal is to help doctors by processing patient case information and responding to their requests.\n\n**Output Format for Case Analysis (when summary/labs/images are provided for analysis):**\nProvide a unified JSON response with: `soap_note` (subjective, objective, assessment, plan), `differential_diagnoses`, `recommended_investigations`, `treatment_options`, `file_interpretations` (array), `overall_confidence_score`, and potentially a `derived_patient_id` if identifiable.\n\n**Output Format for Retrieval Commands (e.g., “Show yesterday’s CBC for patient 47321”):**\nProvide JSON: `retrieval_command`, `intent`, `parameters`, `retrieved_data` (this will be populated after a system search if needed), `text_reply`."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        -1240,
+        -980
+      ],
+      "id": "6864eabf-e481-4d87-9d56-e6e23892120b",
+      "name": "AI Clinical Assistant"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "b7b64446-f1ea-4622-990c-22f3999a8269",
+                    "leftValue": "={{ $json.messages[0].audio }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "object",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Voice"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "202af928-a324-411a-bf15-68a349e7bf9e",
+                    "leftValue": "={{ $json.messages[0].image }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "object",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Image"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.messages[0].text.body }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "08fd0c80-307e-4f45-b1de-35192ee4ec5e"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Text"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "3c1b9b9e-7e5f-4f1a-b0e6-1f2a3c4d5e6f",
+                    "leftValue": "={{ $json.messages[0].document }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "object",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Document"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -1760,
+        -1260
+      ],
+      "id": "ad4d757e-03bb-4124-baa6-a1cfe908c6c1",
+      "name": "Check Input Type"
+    },
+    {
+      "parameters": {
+        "resource": "media",
+        "operation": "mediaUrlGet",
+        "mediaGetId": "={{ $('WhatsApp Trigger').item.json.messages[0].image.id }}"
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        -1340,
+        -1720
+      ],
+      "id": "0ba9681c-f0eb-485a-acde-e34b669b5421",
+      "name": "Get Image URL",
+      "webhookId": "37871a3b-6cc0-4664-a881-87465f3897fe",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "BfXUH35YkhBL8p0h",
+          "name": "WhatsApp response"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1180,
+        -1720
+      ],
+      "id": "be463b25-1aa0-43d2-aaf8-d931d6b3482c",
+      "name": "Download Image",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "9wnPWm0nI9ERD2jd",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "chatgpt-4o-latest",
+          "mode": "list"
+        },
+        "text": "=Describe the image in detail. Focus on elements relevant to a potential medical context if any are apparent, otherwise provide a general description.",
+        "inputType": "base64",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -1020,
+        -1720
+      ],
+      "id": "ac8fb71e-5896-40d2-9fa2-03ed68a20f57",
+      "name": "Analyze Image",
+      "credentials": {
+        "openAiApi": {
+          "id": "6nOgP9ZUBSjFqiF2",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "img1",
+              "name": "text",
+              "value": "=# User Input with Image:\n\n## PATIENT CASE SUMMARY / COMMAND (from image caption, if any):\n{{ $('WhatsApp Trigger').item.json.messages[0].image.caption || \"No caption provided.\" }}\n\n## IMAGE CONTENT INTERPRETATION:\n{{ $json.content }}\n\n## IMAGE METADATA:\nFilename: {{ $('WhatsApp Trigger').item.json.messages[0].image.id }}.{{ $('WhatsApp Trigger').item.json.messages[0].image.mime_type.split('/')[1] || 'jpg' }}\nMIME Type: {{ $('WhatsApp Trigger').item.json.messages[0].image.mime_type }}\n\nORIGINAL_USER_QUERY: {{ $('WhatsApp Trigger').item.json.messages[0].image.caption || \"Image received without caption.\" }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -860,
+        -1720
+      ],
+      "id": "48fad1fa-ac94-4f02-ab48-4ecf09c4c31c",
+      "name": "Image + Caption Input Formatter"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "txt1",
+              "name": "text",
+              "value": "=# Potential Patient Case Summary / User Command:\n{{ $('WhatsApp Trigger').item.json.messages[0].text.body }}\n\nORIGINAL_USER_QUERY: {{ $('WhatsApp Trigger').item.json.messages[0].text.body }}",
+              "type": "string"
+            },
+            {
+              "id": "a4eb5937-a80e-4b3b-bc91-43a3f9517893",
+              "name": "messages[0].text.body",
+              "value": "={{ $json.messages[0].text.body }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1500,
+        -1140
+      ],
+      "id": "67b62d9e-193a-40b2-bb67-0ae4190327ab",
+      "name": "Text Input Formatter"
+    },
+    {
+      "parameters": {
+        "resource": "media",
+        "operation": "mediaUrlGet",
+        "mediaGetId": "={{ $('WhatsApp Trigger').item.json.messages[0].audio.id }}"
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        -1360,
+        -1940
+      ],
+      "id": "bfd45b83-8a67-447a-abd6-c211ee260b8d",
+      "name": "Get Audio URL",
+      "webhookId": "2c6c0553-3a23-46c8-8b54-509a3933281c",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "BfXUH35YkhBL8p0h",
+          "name": "WhatsApp response"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1200,
+        -1940
+      ],
+      "id": "1e9c59b8-8b19-4b5f-bc07-b857a2c93fa8",
+      "name": "Download Audio",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "9wnPWm0nI9ERD2jd",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -1040,
+        -1940
+      ],
+      "id": "85fcfabe-f377-449a-9ec8-038fe307297a",
+      "name": "Transcribe Audio",
+      "credentials": {
+        "openAiApi": {
+          "id": "6nOgP9ZUBSjFqiF2",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "aud1",
+              "name": "text",
+              "value": "=# Potential Patient Case Summary (from dictation) / User Command:\n{{ $json.text }}\n\nORIGINAL_USER_QUERY: {{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -880,
+        -1940
+      ],
+      "id": "d5a8388f-1010-4eae-a17f-7d19a247ab96",
+      "name": "Audio Input Formatter"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "doc1",
+              "name": "text",
+              "value": "=# Document Received: {{ $('WhatsApp Trigger').item.json.messages[0].document.filename }} ({{ $('WhatsApp Trigger').item.json.messages[0].document.mime_type }}). Parsing for PDF/CSV lab reports is planned. For now, please describe key info or ask questions based on it.\n\nUSER MESSAGE (caption if any): {{ $('WhatsApp Trigger').item.json.messages[0].document.caption || \"Document sent without caption.\" }}\n\nORIGINAL_USER_QUERY: {{ $('WhatsApp Trigger').item.json.messages[0].document.caption || \"Document \" + $('WhatsApp Trigger').item.json.messages[0].document.filename + \" received.\" }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1500,
+        -980
+      ],
+      "id": "60b25273-ae0b-43cc-b430-932451c66506",
+      "name": "Document Input Formatter (Placeholder)"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "condPDF",
+              "leftValue": "={{ $json.output.request_action === 'generate_pdf_report' }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -620,
+        -1200
+      ],
+      "id": "32ff2ecf-015e-448c-9d40-432745fb2bef",
+      "name": "If PDF Report Requested?"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "html1",
+              "name": "htmlContent",
+              "type": "string",
+              "value": "={{ (() => { const data = $json.output; let html = '<html><head><style>body{font-family: sans-serif;} h1,h2,h3{color: #333;} .section{margin-bottom: 20px; border: 1px solid #eee; padding: 10px;} .label{font-weight: bold;}</style></head><body>'; html += '<h1>Clinical Case Report</h1>'; if(data.derived_patient_id) html += `<p><span class='label'>Patient ID:</span> ${data.derived_patient_id}</p>`; if(data.soap_note){ html += '<div class=\"section\"><h2>SOAP Note</h2>'; html += `<p><span class='label'>Subjective:</span> ${data.soap_note.subjective || 'N/A'}</p>`; html += `<p><span class='label'>Objective:</span> ${data.soap_note.objective || 'N/A'}</p>`; html += `<p><span class='label'>Assessment:</span> ${data.soap_note.assessment || 'N/A'}</p>`; html += `<p><span class='label'>Plan:</span> ${data.soap_note.plan || 'N/A'}</p></div>`; } if(data.differential_diagnoses && data.differential_diagnoses.length > 0){ html += '<div class=\"section\"><h3>Differential Diagnoses</h3><ul>'; data.differential_diagnoses.forEach(dx => {html += `<li>${dx}</li>`;}); html += '</ul></div>';} if(data.recommended_investigations && data.recommended_investigations.length > 0){ html += '<div class=\"section\"><h3>Recommended Investigations</h3><ul>'; data.recommended_investigations.forEach(inv => {html += `<li>${inv}</li>`;}); html += '</ul></div>';} if(data.treatment_options && data.treatment_options.length > 0){ html += '<div class=\"section\"><h3>Treatment Options</h3><ul>'; data.treatment_options.forEach(tx => {html += `<li>${tx}</li>`;}); html += '</ul></div>';} if(data.file_interpretations && data.file_interpretations.length > 0){ html += '<div class=\"section\"><h3>File Interpretations</h3>'; data.file_interpretations.forEach(f => {html += `<p><span class='label'>${f.file_name || f.file_type}:</span> ${f.interpretation}</p>`;}); html += '</div>';} if(data.overall_confidence_score) html += `<p><span class='label'>Overall Confidence:</span> ${data.overall_confidence_score}</p>`; html += '</body></html>'; return html; })() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -220,
+        -1380
+      ],
+      "id": "a8e4623b-a7ba-44bd-8d4d-78291049b6c3",
+      "name": "Prepare HTML for PDF"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "705417332651611",
+        "recipientPhoneNumber": "={{ $('WhatsApp Trigger').item.json.messages[0].from }}",
+        "messageType": "document",
+        "mediaPath": "useMedian8n",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        340,
+        -1380
+      ],
+      "id": "79372b04-3853-40fd-888f-aa31d6081cf1",
+      "name": "Send PDF Report",
+      "webhookId": "bedf068c-40d4-4581-bd1f-7ea7738ac754",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "BfXUH35YkhBL8p0h",
+          "name": "WhatsApp response"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "condAudioIn",
+              "leftValue": "={{ $('WhatsApp Trigger').item.json.messages[0].audio }}",
+              "operator": {
+                "type": "object",
+                "operation": "exists"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -40,
+        -800
+      ],
+      "id": "a734a8f8-f63e-4053-8faa-ff8c6c883f2f",
+      "name": "If Input was Audio?"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "input": "={{ $json.output.text_reply || JSON.parse($json.output).text_reply || JSON.stringify($json.output) }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        620,
+        -820
+      ],
+      "id": "0082ed36-4bf4-4e0d-9181-8c3347b49daf",
+      "name": "Generate Audio Response",
+      "credentials": {
+        "openAiApi": {
+          "id": "6nOgP9ZUBSjFqiF2",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "705417332651611",
+        "recipientPhoneNumber": "={{ $('WhatsApp Trigger').item.json.messages[0].from }}",
+        "messageType": "audio",
+        "mediaPath": "useMedian8n",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        980,
+        -820
+      ],
+      "id": "5b6b351e-79c7-4874-af0f-f692ee83cc2a",
+      "name": "Respond with Audio",
+      "webhookId": "2d7656c2-6291-44da-9d99-d0bef6b09ae9",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "BfXUH35YkhBL8p0h",
+          "name": "WhatsApp response"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "705417332651611",
+        "recipientPhoneNumber": "={{ $('WhatsApp Trigger').item.json.messages[0].from }}",
+        "textBody": "={{ JSON.parse($json.output).text_reply || $json.output }}\n",
+        "additionalFields": {
+          "previewUrl": ""
+        }
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        -140,
+        -420
+      ],
+      "id": "be234d7c-0a88-474e-b823-4da8301e5213",
+      "name": "Respond with Text",
+      "webhookId": "f4ea87fe-b70d-46b8-8656-fa4d32772e79",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "BfXUH35YkhBL8p0h",
+          "name": "WhatsApp response"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "for (const item of $input.all()) { if (item.binary) { const binaryPropertyNames = Object.keys(item.binary); for (const propName of binaryPropertyNames) { if (item.binary[propName].mimeType === 'audio/mp3') { item.binary[propName].mimeType = 'audio/mpeg'; } } } } return $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        -820
+      ],
+      "id": "93967e22-d32a-4861-b1fe-491926176ee6",
+      "name": "Fix Mime Type"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -1320,
+        -680
+      ],
+      "id": "eaac25ae-7cfb-42d3-bd68-a8e92acad70c",
+      "name": "OpenAI Chat Model (for AI Assistant)",
+      "credentials": {
+        "openAiApi": {
+          "id": "6nOgP9ZUBSjFqiF2",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -940,
+        -660
+      ],
+      "id": "b9f2418f-c8e1-4fc6-8d50-e2cd0cdd26d2",
+      "name": "Embeddings OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "6nOgP9ZUBSjFqiF2",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('WhatsApp Trigger').item.json.messages[0].from }}",
+        "contextWindowLength": 25
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -1120,
+        -680
+      ],
+      "id": "2c33d4f3-2398-4286-a04f-565f2a9a79ad",
+      "name": "Simple Memory1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          {
+            "node": "Check Input Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Input Type": {
+      "main": [
+        [
+          {
+            "node": "Get Audio URL",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Image URL",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Text Input Formatter",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Document Input Formatter (Placeholder)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Input Formatter": {
+      "main": [
+        [
+          {
+            "node": "AI Clinical Assistant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Audio Input Formatter": {
+      "main": [
+        [
+          {
+            "node": "AI Clinical Assistant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Image + Caption Input Formatter": {
+      "main": [
+        [
+          {
+            "node": "AI Clinical Assistant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Document Input Formatter (Placeholder)": {
+      "main": [
+        [
+          {
+            "node": "AI Clinical Assistant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Image URL": {
+      "main": [
+        [
+          {
+            "node": "Download Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Image": {
+      "main": [
+        [
+          {
+            "node": "Analyze Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Image": {
+      "main": [
+        [
+          {
+            "node": "Image + Caption Input Formatter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Audio URL": {
+      "main": [
+        [
+          {
+            "node": "Download Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Audio": {
+      "main": [
+        [
+          {
+            "node": "Transcribe Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe Audio": {
+      "main": [
+        [
+          {
+            "node": "Audio Input Formatter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If PDF Report Requested?": {
+      "main": [
+        [
+          {
+            "node": "Prepare HTML for PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If Input was Audio?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Input was Audio?": {
+      "main": [
+        [
+          {
+            "node": "Generate Audio Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond with Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Audio Response": {
+      "main": [
+        [
+          {
+            "node": "Fix Mime Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fix Mime Type": {
+      "main": [
+        [
+          {
+            "node": "Respond with Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model (for AI Assistant)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Clinical Assistant",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        []
+      ]
+    },
+    "Prepare HTML for PDF": {
+      "main": [
+        [
+          {
+            "node": "Send PDF Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Clinical Assistant",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Clinical Assistant": {
+      "main": [
+        [
+          {
+            "node": "If PDF Report Requested?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "b56fe607-8299-401f-b795-8e6d956961fc",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "dd50b66ee061e6f2a0f314a1df149b310b57a575a469247d3aba283b5c8711db"
+  },
+  "id": "xmi3kHXKuXW6yCrE",
+  "tags": [
+    {
+      "createdAt": "2025-06-26T06:44:43.585Z",
+      "updatedAt": "2025-06-26T06:44:43.585Z",
+      "id": "JHE8g0ie63X9BlFr",
+      "name": "ai-assistant"
+    },
+    {
+      "createdAt": "2025-06-26T06:44:43.623Z",
+      "updatedAt": "2025-06-26T06:44:43.623Z",
+      "id": "aarUaQbQcaojoVnX",
+      "name": "clinical"
+    },
+    {
+      "createdAt": "2025-06-26T06:44:43.660Z",
+      "updatedAt": "2025-06-26T06:44:43.660Z",
+      "id": "cLEuCWMWm20hyA4d",
+      "name": "healthcare"
+    },
+    {
+      "createdAt": "2025-06-26T06:44:43.705Z",
+      "updatedAt": "2025-06-26T06:44:43.705Z",
+      "id": "sfvqlz8rLIn3Pb6U",
+      "name": "multimodal"
+    }
+  ]
+}
